@@ -1,0 +1,511 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {},
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1024,
+        -208
+      ],
+      "id": "738f44ef-06e2-4ad5-b471-f98285aa56f5",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://drive.google.com/uc?export=download&id=1iqwCcnGM19_duIeg-Q-xyc6FCHLxooNg",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -672,
+        0
+      ],
+      "id": "4d7b338c-0451-4b67-93f6-9b3405b69bc3",
+      "name": "HTTP Request",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        -304
+      ],
+      "id": "2360747c-8cb2-46cd-a826-7291fcda0feb",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "bf0045a7-5549-47ca-b54d-1e8e850a2855",
+              "leftValue": "={{$json[\"title\"]}}",
+              "rightValue": "Is Not Empty",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "8daa466a-8472-4b64-8456-1be23998393e",
+              "leftValue": "={{ $json.notes_ready }}",
+              "rightValue": "yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -48,
+        16
+      ],
+      "id": "a130fff9-dc69-4d82-b3a8-3efc86cde5e6",
+      "name": "Title+notes check"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Step 1: Get the stringified chapter list\nlet content = $json[\"message\"]?.content || \"[]\";\n\n// Step 2: Parse safely into a real JS array\nlet chapters = [];\ntry {\n  chapters = JSON.parse(content);\n} catch (e) {\n  console.log(\"Parsing failed:\", e);\n  chapters = [];\n}\n\n// Step 3: Convert to structured chapter objects\nconst formatted = chapters.map((title, index) => ({\n  chapter_number: index + 1,\n  title,\n  summary: \"\",\n  notes: \"\",\n  content: \"\"\n}));\n\n// Step 4: Return structured data for Supabase or next node\nreturn [\n  {\n    json: {\n      chapters: formatted,\n      chapters_ready: formatted.length > 0 ? \"yes\" : \"no\"\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -336
+      ],
+      "id": "f99d69ec-184a-40de-8297-7cae8ffc7a15",
+      "name": "Format Chapters"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a book outline generator.  \nYour only job is to return a **pure JSON array** of chapter titles.  \n\nBook Title: {{$json[\"title\"]}}  \nNotes: {{$json[\"notes\"]}}  \n\nRules:\n1. Output must be ONLY a JSON array — nothing else.\n2. Do not include any explanations, markdown, or labels.\n3. Each chapter title must be a string, like:\n[\"Chapter 1: Introduction\", \"Chapter 2: Managing Your Finances\", \"Chapter 3: Avoiding Debt\"]\n\nIf the output is not a valid JSON array, fix it and try again until it is.\n",
+              "role": "system"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 1000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        528,
+        16
+      ],
+      "id": "6540e036-adb0-4965-a296-93266caac9a1",
+      "name": "Book Outline AI",
+      "alwaysOutputData": false,
+      "credentials": {
+        "openAiApi": {
+          "id": "nuaiEGGeqpbt3EW4",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://keznvpfpdrditengzqzl.supabase.co/rest/v1/Books",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtlem52cGZwZHJkaXRlbmd6cXpsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTI3NDQ2NSwiZXhwIjoyMDc2ODUwNDY1fQ.bk30172AWj0tEwIXbUoTjMnqb08jN9CkwD3R8QGCSQg"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtlem52cGZwZHJkaXRlbmd6cXpsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTI3NDQ2NSwiZXhwIjoyMDc2ODUwNDY1fQ.bk30172AWj0tEwIXbUoTjMnqb08jN9CkwD3R8QGCSQg"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"title\": \"In Your Twenties, How to Avoid Debt\",\n  \"notes\": \"focus on young adults, US audience, one chapter on first mortgage at least, one chapter on avoiding payday loans, one chapter on avoiding and managing bad spending habits like gambling or partying too much\",\n  \"outline\": [],\n  \"notes_ready\": \"yes\",\n  \"chapters_ready\": \"no\",\n  \"status\": \"outline_completed\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        304,
+        -352
+      ],
+      "id": "b913f52e-809a-4f8d-b38b-83c23c036e13",
+      "name": "Supabase Chapter Update",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://keznvpfpdrditengzqzl.supabase.co/rest/v1/Books?id=eq={{$json[\"id\"]}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtlem52cGZwZHJkaXRlbmd6cXpsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTI3NDQ2NSwiZXhwIjoyMDc2ODUwNDY1fQ.bk30172AWj0tEwIXbUoTjMnqb08jN9CkwD3R8QGCSQg"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtlem52cGZwZHJkaXRlbmd6cXpsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTI3NDQ2NSwiZXhwIjoyMDc2ODUwNDY1fQ.bk30172AWj0tEwIXbUoTjMnqb08jN9CkwD3R8QGCSQg"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chapters\": {{$json[\"chapters\"]}},\n  \"chapters_ready\": \"yes\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "96c1c2cb-b6fa-4a1a-acf8-01ff6f157751",
+      "name": "Update Supabase Chapters"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get chapters array from previous node\nconst chapters = $json[\"chapters\"];\n\n// Ensure it's an array\nif (!Array.isArray(chapters)) {\n  throw new Error(\"Invalid input: chapters must be an array\");\n}\n\n// Rebuild clean structure for each chapter\nconst chapterData = chapters.map((ch, index) => ({\n  chapter_number: ch.chapter_number || index + 1,\n  title: ch.title || `Chapter ${index + 1}`,\n  summary: ch.summary || \"\",\n  notes: ch.notes || \"\",\n  content: ch.content || \"\"\n}));\n\n// Return formatted output\nreturn [\n  {\n    json: {\n      chapters: chapterData,\n      chapters_ready: \"yes\"\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        -416
+      ],
+      "id": "2b49705b-c750-44c5-9818-a590fe597eaf",
+      "name": "Chapter Notes & Summaries setup"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a book content generator.\n\nBook Title: {{$json[\"book_title\"]}}\nChapter Number: {{$json[\"chapter_number\"]}}\nChapter Title: {{$json[\"title\"]}}\nChapter Notes: {{$json[\"notes\"]}}\nPrevious Chapter Summaries: {{$json[\"chapter_summaries\"]}}\n\nGenerate the full, detailed content for this chapter.\n- Follow the book’s tone and structure.\n- Ensure content matches the title and notes.\n- Write in a clear, engaging, and educational tone suitable for young adults.\n- Do NOT include explanations, commentary, or text outside the chapter itself.\n- Return the result strictly as JSON: {\"content\": \"<chapter text>\"}\n",
+              "role": "system"
+            }
+          ]
+        },
+        "simplify": false,
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1744,
+        -32
+      ],
+      "id": "a9781af2-90df-4f51-95b6-f7d40b24ce95",
+      "name": "Generate Chapter Content",
+      "executeOnce": false,
+      "credentials": {
+        "openAiApi": {
+          "id": "5GCQcSJ5oOOtnW6r",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Collect all chapters in one array\nconst chapters = $items().map((item, index) => {\n    // AI output is usually under message.content or similar\n    let aiOutput = item.json[\"message\"]?.content || item.json[\"title\"] || \"\";\n\n    // Sometimes it comes as a stringified JSON\n    let parsed = {};\n    try {\n        parsed = JSON.parse(aiOutput);\n    } catch(e) {\n        parsed.content = aiOutput; // fallback\n    }\n\n    // Split first line as title, rest as content\n    const lines = (parsed.content || \"\").split(\"\\n\").filter(line => line.trim() !== \"\");\n    const chapterTitle = lines[0] || \"Untitled Chapter\";\n    const chapterContent = lines.slice(1).join(\"\\n\").trim();\n\n    return {\n        chapter_number: index + 1,  // sequential chapter number\n        title: chapterTitle,\n        summary: \"\",\n        notes: \"\",\n        content: chapterContent\n    };\n});\n\n// Merge chapters into one JSON for Compile Full Book node\nreturn [\n    {\n        json: {\n            chapters: chapters,\n            chapters_ready: \"yes\"\n        }\n    }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2048,
+        -416
+      ],
+      "id": "cfed950e-af2b-47ee-b2d9-6196ab848d1d",
+      "name": "Format Chapter Content+chapter number"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Access chapters array\nconst chapters = $json[\"chapters\"] || [];\nlet bookContent = \"\";\n\n// Loop through chapters and append content\nchapters.forEach(ch => {\n    const num = ch.chapter_number || \"?\";      // Use the original chapter number\n    const title = ch.title || \"Untitled Chapter\";\n    const content = ch.content || \"\";\n    \n    bookContent += `${title}\\n\\n`;            // Only use original title\n    bookContent += `${content}\\n\\n`;\n});\n\nreturn [\n    {\n        json: {\n            book_title: $json[\"book_title\"] || \"Untitled Book\",\n            chapters_count: chapters.length,\n            book_content: bookContent,\n            book_output_status: \"ready\"\n        }\n    }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2336,
+        -64
+      ],
+      "id": "0240fcf6-8c75-4d53-b74e-bcad18066b35",
+      "name": "Compile Full Book"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get book content and title from previous node\nconst book = $json; // assumes this node receives JSON like { book_title, book_content }\n\nconst bookTitle = book.book_title || \"Untitled Book\";\nconst bookContent = book.book_content || \"No content available\";\n\n// Convert content to binary data\nconst buffer = Buffer.from(bookContent, \"utf-8\");\n\nreturn [\n  {\n    json: {\n      message: \"Book file ready\",\n      file_name: `${bookTitle}.txt`,\n    },\n    binary: {\n      data: {\n        data: buffer.toString(\"base64\"), // n8n requires base64 for binary\n        mimeType: \"text/plain\",\n        fileName: `${bookTitle}.txt`,\n      }\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2688,
+        -400
+      ],
+      "id": "a92967b6-5c8d-4f83-9bed-dcf98dae7da4",
+      "name": "Book content into Binary file"
+    },
+    {
+      "parameters": {
+        "sendTo": "agkraffay12@gmail.com",
+        "subject": "Hello, This is the book i have generated",
+        "emailType": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2896,
+        -400
+      ],
+      "id": "01e7b376-900d-43f7-90d6-862cfd78dcb1",
+      "name": "Send a message",
+      "webhookId": "68ffe7c4-79a5-49ef-adb4-8dd379c9994b",
+      "alwaysOutputData": true,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YSVi59kSxidBkONV",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all chapters from previous node\nconst chapters = $json[\"chapters\"];\n\n// If chapters exist, split them into individual items\nif (chapters && Array.isArray(chapters)) {\n  return chapters.map(chapter => ({\n    json: {\n      book_title: $json[\"book_title\"] || \"Untitled Book\",\n      chapter_number: chapter.chapter_number,\n      title: chapter.title,\n      notes: chapter.notes,\n      chapter_summaries: $json[\"chapter_summaries\"] || \"\"\n    }\n  }));\n} else {\n  return [{ json: { error: \"No chapters found.\" } }];\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1488,
+        -224
+      ],
+      "id": "7cffb79f-44c8-4368-88da-0b1cddc50235",
+      "name": "splitting chapters"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Title+notes check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Title+notes check": {
+      "main": [
+        [
+          {
+            "node": "Supabase Chapter Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Chapters": {
+      "main": [
+        [
+          {
+            "node": "Update Supabase Chapters",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Chapter Notes & Summaries setup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book Outline AI": {
+      "main": [
+        [
+          {
+            "node": "Format Chapters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Chapter Update": {
+      "main": [
+        [
+          {
+            "node": "Book Outline AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Supabase Chapters": {
+      "main": [
+        []
+      ]
+    },
+    "Chapter Notes & Summaries setup": {
+      "main": [
+        [
+          {
+            "node": "splitting chapters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Chapter Content": {
+      "main": [
+        [
+          {
+            "node": "Format Chapter Content+chapter number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Chapter Content+chapter number": {
+      "main": [
+        [
+          {
+            "node": "Compile Full Book",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compile Full Book": {
+      "main": [
+        [
+          {
+            "node": "Book content into Binary file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book content into Binary file": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "splitting chapters": {
+      "main": [
+        [
+          {
+            "node": "Generate Chapter Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7533dd94-8e4c-450f-9e33-4ff28241f88b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "afec23bea9bb9e9cf93cb105db228c906853281fb03f2c3835842f1cf2fc6623"
+  },
+  "id": "JW7eFsBKoRssfhdL",
+  "tags": []
+}
