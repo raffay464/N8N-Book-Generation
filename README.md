@@ -94,18 +94,18 @@ Click Execute Workflow or enable the Schedule Trigger for automation.
 
 
 ## 📦 Tech Stack
-n8n :
+**n8n** :
   Workflow automation platform
-OpenAI API :
+**OpenAI API** :
   GPT-based content generation
-Supabase :
+**Supabase** :
   Backend database and API
   JavaScript (for logic and custom Function nodes)
   Gmail API (planned integration)
 
 
 ## 📧 Future Improvements
- 1-Complete Gmail node configuration for automatic book delivery
- 2-Add PDF export option
- 3-Include progress notifications via Telegram or Slack
- 4-Extend workflow for multi-book batch generation  
+ 1-**Complete Gmail node configuration for automatic book delivery**
+ 2-**Add PDF export option**
+ 3-**Include progress notifications via Telegram or Slack**
+ 4-**Extend workflow for multi-book batch generation**  
